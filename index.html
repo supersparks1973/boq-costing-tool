@@ -20759,10 +20759,13 @@ var __async = (__this, __arguments, generator) => {
 
   /* Version badge, nav, sticky bar, restore bar */
   .ver-badge { font-size: 12px; background: #e58c2c; color: #fff; padding: 2px 8px; border-radius: 10px; vertical-align: middle; font-weight: 600; }
-  .nav-bar { position: sticky; top: 0; z-index: 90; background: rgba(244,245,247,0.95); backdrop-filter: blur(6px); padding: 8px 0; margin: -8px 0 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #e2e8f0; }
+  .nav-bar { position: sticky; top: 0; z-index: 90; background: #f4f5f7; padding: 8px 0; margin: -8px 0 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #e2e8f0; }
   .nav-chip { background: #fff; border: 1px solid #d5dbe3; color: #1e3a5f; border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .nav-chip:hover { background: #eef3fb; border-color: #2c7be5; }
   .nav-chip.nav-sec { background: #f0f4ff; }
+  #navSections { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #navSections:empty { display: none; }
+  .nav-chip { white-space: nowrap; flex-shrink: 0; }
   .nav-sep { width: 1px; height: 18px; background: #d5dbe3; margin: 0 2px; }
   .sticky-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 95; background: #1e3a5f; color: #fff; box-shadow: 0 -4px 16px rgba(0,0,0,0.18); }
   .sticky-bar .inner { max-width: 1150px; margin: 0 auto; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -20875,7 +20878,7 @@ var __async = (__this, __arguments, generator) => {
   <!-- Header -->
   <div class="page-header">
     <div>
-      <h1>Bill of Quantities <span class="ver-badge">v5.26 — 9 Oct 26</span></h1>
+      <h1>Bill of Quantities <span class="ver-badge">v5.27 — 9 Oct 26</span></h1>
       <p>Construction Costing &amp; Quotation Tool</p>
     </div>
     <div class="header-buttons">
@@ -20900,7 +20903,7 @@ var __async = (__this, __arguments, generator) => {
     <button class="nav-chip" onclick="jumpTo('secPrelims')">Prelims</button>
     <button class="nav-chip" onclick="jumpTo('secDayRates')">Day Rates</button>
     <span class="nav-sep"></span>
-    <span id="navSections" style="display:contents"></span>
+    <span id="navSections"></span>
     <button class="nav-chip" onclick="addCostSection()" title="Add a cost section">+ Section</button>
     <span class="nav-sep"></span>
     <button class="nav-chip" onclick="jumpTo('secOptions')">Options</button>
@@ -23744,12 +23747,15 @@ function jumpTo(id) {
 function updateNavSections() {
   const holder = document.getElementById("navSections"); if (!holder) return;
   const secs = document.querySelectorAll(".cost-section");
+  const sig = [...secs].map((sec, i) => sec.querySelector(".section-name-input")?.value || `Section ${i + 1}`).join("\u0001");
+  if (holder.dataset.sig === sig && holder.children.length === secs.length) return;
+  holder.dataset.sig = sig;
   holder.innerHTML = "";
   secs.forEach((sec, i) => {
     const name = sec.querySelector(".section-name-input")?.value || `Section ${i + 1}`;
     const a = document.createElement("button");
     a.className = "nav-chip nav-sec"; a.textContent = name.length > 26 ? name.slice(0, 24) + "…" : name; a.title = name;
-    a.onclick = () => { sec.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    a.onclick = () => { document.querySelectorAll(".cost-section")[i]?.scrollIntoView({ behavior: "smooth", block: "start" }); };
     holder.appendChild(a);
   });
 }
