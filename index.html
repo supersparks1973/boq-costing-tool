@@ -127,6 +127,31 @@
   @keyframes importFlash { 0% { box-shadow: 0 0 0 3px rgba(39,174,96,0.65); } 100% { box-shadow: 0 0 0 3px rgba(39,174,96,0); } }
   .price-cell { position: relative; }
 
+
+  /* Price Book picker */
+  .btn-pricebook { background:#fff; color:#a9511c; border:1px solid #e3b48f; border-radius:6px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer; margin-left:auto; margin-right:8px; }
+  .btn-pricebook:hover { background:#f6e6da; }
+  .pb-tools { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .pb-tools input[type=search] { flex:1 1 260px; min-width:0; }
+  .pb-tools select { width:auto; max-width:100%; }
+  .pb-list { max-height:56vh; overflow-y:auto; border:1px solid #e5e9f0; border-radius:8px; }
+  .pb-row { display:grid; grid-template-columns:minmax(0,1fr) 150px 70px 74px; gap:10px; align-items:center; padding:9px 12px; border-top:1px solid #f0f2f6; }
+  .pb-row:first-child { border-top:0; }
+  .pb-row.added { background:#eefaf3; }
+  .pb-no { font:600 12.5px ui-monospace,Menlo,Consolas,monospace; color:#a9511c; margin-right:6px; }
+  .pb-desc { font-size:13.5px; color:#1e2a38; overflow-wrap:anywhere; }
+  .pb-meta { display:block; font-size:11.5px; color:#7a8796; margin-top:2px; }
+  .pb-tag { display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:1px 6px; border-radius:3px; background:#fbefd2; color:#8a5a00; margin-left:6px; vertical-align:1px; }
+  .pb-price select { width:100%; padding:5px 6px; font-size:12.5px; }
+  .pb-best { font:600 15px ui-monospace,Menlo,Consolas,monospace; color:#1e3a5f; }
+  .pb-row input.pb-qty { width:100%; padding:5px 7px; font-size:13px; }
+  .pb-add { background:#27ae60; color:#fff; border:none; border-radius:6px; padding:7px 10px; font-size:13px; font-weight:700; cursor:pointer; }
+  .pb-add:hover { background:#1e8e4e; }
+  .pb-empty { padding:30px 16px; text-align:center; color:#7a8796; }
+  .pb-foot { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; justify-content:space-between; margin-top:12px; font-size:12.5px; color:#666; }
+  .pb-foot a, .pb-foot button.pb-link { color:#2c7be5; background:none; border:0; padding:0; font:inherit; cursor:pointer; text-decoration:underline; }
+  @media (max-width:700px){ .pb-row { grid-template-columns:1fr 1fr; } .pb-row .pb-main { grid-column:1/-1; } }
+
   /* Prelims */
   .prelims-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px; }
   .prelim-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
@@ -274,7 +299,7 @@
   <!-- Header -->
   <div class="page-header">
     <div>
-      <h1>Bill of Quantities <span class="ver-badge">v5.21 — 29 Sep 26</span></h1>
+      <h1>Bill of Quantities <span class="ver-badge">v5.22 — 9 Oct 26</span></h1>
       <p>Construction Costing &amp; Quotation Tool</p>
     </div>
     <div class="header-buttons">
@@ -498,7 +523,7 @@
     </div>
 
     <!-- Materials -->
-    <div class="section-header bg-green" style="margin-top:12px"><h3>Materials<span class="count-badge" data-count-for="materials" style="display:none"></span></h3><button class="btn-add" onclick="addMaterialRowTo(this)">+ Add Material</button></div>
+    <div class="section-header bg-green" style="margin-top:12px"><h3>Materials<span class="count-badge" data-count-for="materials" style="display:none"></span></h3><button class="btn-pricebook" onclick="openPriceBook(this)" title="Pick materials from the Man Projects Price Book (best wholesaler prices)">📖 Price Book</button><button class="btn-add" onclick="addMaterialRowTo(this)">+ Add Material</button></div>
     <div class="table-wrap">
       <table class="data-table"><thead><tr>
         <th style="width:25%">Description</th><th style="width:7%">Qty</th><th style="width:7%">Unit</th><th style="width:10%">Unit Cost (£)</th><th style="width:8%">Markup %</th><th style="width:11%" class="right">Line Total</th><th style="width:16%">Notes</th><th style="width:36px"></th>
@@ -840,6 +865,24 @@
 </div>
 
 <!-- IMPORT QUOTE MODAL -->
+
+<div class="import-overlay" id="pbOverlay" onclick="if(event.target===this)closePriceBook()">
+  <div class="import-modal" role="dialog" aria-labelledby="pbTitle">
+    <button class="import-close" onclick="closePriceBook()" aria-label="Close">×</button>
+    <h2 id="pbTitle">📖 Price Book</h2>
+    <div class="import-sub" id="pbSub">Best prices from your wholesaler quotes. Set the quantity and press Add &mdash; the line goes into <strong id="pbDestName">Materials</strong> at the chosen price, with the wholesaler and quote date in Notes.</div>
+    <div class="pb-tools">
+      <input type="search" id="pbQ" placeholder="Search part number or description — e.g. 4mm SWA, A9D05816, RCBO" aria-label="Search the price book" oninput="pbLimit=60;renderPriceBook()">
+      <select id="pbCat" aria-label="Category" onchange="pbLimit=60;renderPriceBook()"><option value="">All categories</option></select>
+      <select id="pbSort" aria-label="Sort" onchange="renderPriceBook()"><option value="freq">Most quoted</option><option value="cat">Category</option><option value="recent">Most recent</option></select>
+    </div>
+    <div class="pb-list" id="pbList"><div class="pb-empty">Loading price book…</div></div>
+    <div class="pb-foot">
+      <span id="pbInfo"></span>
+      <span><a href="https://claude.ai/artifact/FG4divRNwZu2CEU8pjSUqB" target="_blank" rel="noopener">Open Price Book ↗</a> &nbsp;·&nbsp; <button class="pb-link" onclick="document.getElementById('pbFile').click()">Load a newer price file</button><input type="file" id="pbFile" accept=".json" style="display:none" onchange="pbLoadFile(this.files[0]);this.value=''"></span>
+    </div>
+  </div>
+</div>
 <div class="import-overlay" id="importOverlay">
   <div class="import-modal">
     <button class="import-close" onclick="closeImportModal()">×</button>
@@ -3940,6 +3983,109 @@ document.addEventListener("DOMContentLoaded", () => {
     if (_dirty) { autosaveNow(); e.preventDefault(); e.returnValue = ""; }
   });
 });
+
+// ---------- Price Book link ----------
+// Data: pricebook.json beside this page (built from the Man Projects Price Book). A newer file loaded by hand is kept in this browser and wins if newer.
+let PB = null, pbTarget = null, pbLimit = 60, pbAdded = new Set();
+const PB_LS = "boq-pricebook-v1";
+const pbEsc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pbMon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const pbDate = d => { if (!d) return ""; const [y,m,dd] = d.split("-"); return `${+dd} ${pbMon[m-1]} ${y.slice(2)}`; };
+const pbMoney = v => "£" + Number(v).toLocaleString("en-GB", { minimumFractionDigits: v < 1 ? 4 : 2, maximumFractionDigits: v < 1 ? 4 : 2 });
+const pbAge = d => Math.round((Date.now() - new Date(d)) / 864e5);
+function pbUnit(u) {
+  u = String(u || "").toUpperCase();
+  if (u === "M") return "m";
+  if (["PACK","PK"].includes(u)) return "pack";
+  if (["LE","LENGTH","LGTH","3M","3MTR"].includes(u)) return "length";
+  return "ea";
+}
+function pbValid(d) { return d && Array.isArray(d.parts) && Array.isArray(d.w) && Array.isArray(d.c); }
+async function pbLoad() {
+  if (PB) return PB;
+  let local = null, remote = null;
+  try { const t = localStorage.getItem(PB_LS); if (t) { const d = JSON.parse(t); if (pbValid(d)) local = d; } } catch (e) {}
+  try { const r = await fetch("./pricebook.json", { cache: "no-cache" }); if (r.ok) { const d = await r.json(); if (pbValid(d)) remote = d; } } catch (e) {}
+  PB = (local && (!remote || (local.built || "") > (remote.built || ""))) ? local : remote;
+  if (PB) pbPrep();
+  return PB;
+}
+function pbPrep() {
+  PB.parts.forEach((p, i) => { p.i = i; p.s = (p.p + " " + p.d + " " + (PB.c[p.c] || "")).toLowerCase(); });
+  const cat = document.getElementById("pbCat"); cat.length = 1;
+  PB.c.forEach((c, i) => { if (PB.parts.some(p => p.c === i)) { const o = document.createElement("option"); o.value = i; o.textContent = c; cat.appendChild(o); } });
+  document.getElementById("pbInfo").textContent = `${PB.parts.length} parts · ${PB.w.join(", ")} · updated ${pbDate(PB.built)} · prices net of VAT`;
+}
+function pbLoadFile(file) {
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      if (!pbValid(d)) throw new Error("bad");
+      try { localStorage.setItem(PB_LS, JSON.stringify(d)); } catch (e) {}
+      PB = d; pbPrep(); renderPriceBook();
+    } catch (e) { alert("That file isn't a Price Book export (pricebook.json)."); }
+  };
+  rd.readAsText(file);
+}
+async function openPriceBook(btn) {
+  pbTarget = btn.closest(".cost-section");
+  const nm = pbTarget?.querySelector(".section-name-input")?.value;
+  document.getElementById("pbDestName").textContent = nm ? `Materials — ${nm}` : "Materials";
+  pbAdded = new Set();
+  document.getElementById("pbOverlay").classList.add("open");
+  const q = document.getElementById("pbQ"); setTimeout(() => q.focus(), 30);
+  if (!await pbLoad()) {
+    document.getElementById("pbList").innerHTML = `<div class="pb-empty"><strong>Price book not found.</strong><br>If you opened this tool from a saved file, use “Load a newer price file” below to load pricebook.json.</div>`;
+    return;
+  }
+  renderPriceBook();
+}
+function closePriceBook() { document.getElementById("pbOverlay").classList.remove("open"); }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("pbOverlay")?.classList.contains("open")) closePriceBook(); });
+function renderPriceBook() {
+  if (!PB) return;
+  const terms = document.getElementById("pbQ").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const cat = document.getElementById("pbCat").value, sort = document.getElementById("pbSort").value;
+  let r = PB.parts.filter(p => (cat === "" || p.c === +cat) && terms.every(t => p.s.includes(t)));
+  r.sort({ freq: (a,b) => b.n - a.n || a.d.localeCompare(b.d), cat: (a,b) => a.c - b.c || a.d.localeCompare(b.d), recent: (a,b) => b.l.localeCompare(a.l) }[sort]);
+  const list = document.getElementById("pbList");
+  if (!r.length) { list.innerHTML = `<div class="pb-empty">No parts found. Try fewer words, the cable size, or the start of the part number.</div>`; return; }
+  list.innerHTML = r.slice(0, pbLimit).map(p => {
+    const cable = PB.c[p.c] === "Cable & Flex", old = pbAge(p.bd) > 90;
+    const opts = p.pw.map((x, wi) => x ? `<option value="${wi}" ${wi === p.bw ? "selected" : ""}>${pbEsc(PB.w[wi])} ${pbMoney(x[0])}</option>` : "").join("");
+    const per = p.u === "M" ? "per metre" : ["EA","EACH","HD"].includes(p.u) ? "each" : "per " + String(p.u).toLowerCase();
+    return `<div class="pb-row${pbAdded.has(p.i) ? " added" : ""}" data-i="${p.i}">
+      <div class="pb-main"><span class="pb-no">${pbEsc(p.p || "No part no.")}</span><span class="pb-desc">${pbEsc(p.d)}</span>${cable ? '<span class="pb-tag">Cable · reprice</span>' : ""}
+        <span class="pb-meta">${pbEsc(PB.c[p.c])} · ${pbEsc(per)} · best ${pbMoney(p.b)} ${pbEsc(PB.w[p.bw])} ${pbDate(p.bd)}${old ? " · over 3 months old" : ""} · quoted ${p.n}×</span></div>
+      <div class="pb-price"><select aria-label="Wholesaler price">${opts}</select></div>
+      <input class="pb-qty" type="number" min="0" step="any" value="1" aria-label="Quantity">
+      <button class="pb-add" onclick="pbAdd(this)">${pbAdded.has(p.i) ? "Add again" : "Add"}</button>
+    </div>`;
+  }).join("") + (r.length > pbLimit ? `<div class="pb-empty"><button class="pb-add" style="background:#1e3a5f" onclick="pbLimit+=100;renderPriceBook()">Show more (${r.length - pbLimit} left)</button></div>` : "");
+}
+function pbAdd(btn) {
+  const row = btn.closest(".pb-row"), p = PB.parts[+row.dataset.i];
+  const wi = +row.querySelector("select").value, pr = p.pw[wi] || [p.b, p.bd];
+  const qty = num(row.querySelector(".pb-qty").value) || 1;
+  const sec = pbTarget && document.body.contains(pbTarget) ? pbTarget : document.querySelector(".cost-section");
+  if (!sec) { alert("Add a cost section first."); return; }
+  const body = sec.querySelector(".sec-materialsBody");
+  // Reuse a blank row if the section only has an empty starter row
+  let tr = [...body.querySelectorAll("tr")].find(t => { const i = t.querySelectorAll("input"); return !i[0].value.trim() && !i[1].value && !i[2].value; });
+  if (!tr) { addMaterialRowTo(body); tr = body.lastElementChild; }
+  const inp = tr.querySelectorAll("input");
+  inp[0].value = p.p ? `${p.d} (${p.p})` : p.d;
+  inp[1].value = qty;
+  const sel = tr.querySelector("select"); if (sel) sel.value = pbUnit(p.u);
+  inp[2].value = +(+pr[0]).toFixed(4);
+  if (inp[4]) inp[4].value = `Price Book: ${PB.w[wi] || PB.w[p.bw]} ${pbDate(pr[1])}` + (PB.c[p.c] === "Cable & Flex" ? " — cable, reprice" : "");
+  recalcAll();
+  if (typeof markDirty === "function") try { markDirty(); } catch (e) {}
+  pbAdded.add(p.i); row.classList.add("added"); btn.textContent = "Add again";
+  tr.classList.remove("import-flash"); void tr.offsetWidth; tr.classList.add("import-flash");
+}
 </script>
 </body>
 </html>
